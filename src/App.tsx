@@ -16,6 +16,7 @@ import Discover from "./pages/Discover";
 import Chat from "./pages/Chat";
 import Requests from "./pages/Requests";
 import NotFound from "./pages/NotFound";
+import TechnicianProfile from "./pages/TechnicianProfile";
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/discover" element={<Discover />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/requests" element={<Requests />} />
+              <Route path="/technician/:id" element={<TechnicianProfile />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

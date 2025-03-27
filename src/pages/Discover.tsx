@@ -8,6 +8,7 @@ import { useAuth, UserProfile } from '@/contexts/AuthContext';
 import { ProtectedLayout } from '@/components/Layout';
 import { TechnicianCard, TechnicianCardSkeleton } from '@/components/TechnicianCard';
 import { MapView } from '@/components/MapView';
+import { LocationButton } from '@/components/LocationButton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { 
@@ -25,6 +26,7 @@ export default function Discover() {
   const [specialty, setSpecialty] = useState('all');
   const [location, setLocation] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
+  const [userCoordinates, setUserCoordinates] = useState<{latitude: number, longitude: number} | null>(null);
   
   // Fetch technicians
   const { data: technicians, isLoading, refetch } = useQuery({
@@ -44,6 +46,14 @@ export default function Discover() {
       });
     },
   });
+  
+  // Handle location detection
+  const handleLocationDetected = (latitude: number, longitude: number, formattedAddress?: string) => {
+    setUserCoordinates({ latitude, longitude });
+    if (formattedAddress) {
+      setLocation(formattedAddress);
+    }
+  };
   
   // Filter technicians based on search term and specialty
   const filteredTechnicians = technicians?.filter(tech => {
@@ -131,7 +141,7 @@ export default function Discover() {
                   <label className="text-sm font-medium mb-1 block">
                     Your Location
                   </label>
-                  <div className="relative">
+                  <div className="relative mb-2">
                     <Input
                       placeholder="Enter your location..."
                       value={location}
@@ -140,6 +150,11 @@ export default function Discover() {
                     />
                     <MapPin className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   </div>
+                  <LocationButton 
+                    onLocationDetected={handleLocationDetected}
+                    className="w-full mb-2" 
+                    variant="outline"
+                  />
                 </div>
                 
                 <Button 
@@ -169,7 +184,10 @@ export default function Discover() {
               className="bg-card rounded-lg border shadow-sm overflow-hidden"
             >
               <div className="h-[300px]">
-                <MapView />
+                <MapView 
+                  center={userCoordinates ? [userCoordinates.longitude, userCoordinates.latitude] : undefined}
+                  zoom={userCoordinates ? 14 : 12}
+                />
               </div>
             </motion.div>
           </div>

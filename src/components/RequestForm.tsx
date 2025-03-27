@@ -6,9 +6,10 @@ import * as z from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Laptop, Smartphone, Tablet, Headphones, Tv, Server, MapPin } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, GeoPoint } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { toast } from "sonner";
+import { LocationButton } from '@/components/LocationButton';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -52,6 +53,7 @@ export function RequestForm() {
   const { userProfile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [coordinates, setCoordinates] = useState<{latitude: number, longitude: number} | null>(null);
   
   // Form setup
   const form = useForm<FormValues>({
@@ -63,6 +65,14 @@ export function RequestForm() {
       location: '',
     },
   });
+  
+  // Handle location detection
+  const handleLocationDetected = (latitude: number, longitude: number, formattedAddress?: string) => {
+    setCoordinates({ latitude, longitude });
+    if (formattedAddress) {
+      form.setValue('location', formattedAddress);
+    }
+  };
   
   // Handle form submission
   const onSubmit = async (data: FormValues) => {
@@ -82,6 +92,7 @@ export function RequestForm() {
         userEmail: userProfile.email,
         status: 'pending',
         createdAt: serverTimestamp(),
+        coordinates: coordinates ? new GeoPoint(coordinates.latitude, coordinates.longitude) : null,
       });
       
       setIsSuccess(true);
@@ -90,6 +101,7 @@ export function RequestForm() {
       // Reset the form after 1.5 seconds
       setTimeout(() => {
         form.reset();
+        setCoordinates(null);
         setIsSuccess(false);
       }, 2000);
     } catch (error: any) {
@@ -186,6 +198,9 @@ export function RequestForm() {
                         <MapPin className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       </div>
                     </FormControl>
+                    <div className="mt-2">
+                      <LocationButton onLocationDetected={handleLocationDetected} className="w-full" />
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
