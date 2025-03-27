@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -34,7 +33,6 @@ export default function Dashboard() {
   const { userProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   
-  // Fetch customer requests
   const { data: customerRequests, isLoading: isLoadingRequests } = useQuery({
     queryKey: ['customerRequests', userProfile?.uid],
     queryFn: async () => {
@@ -50,26 +48,23 @@ export default function Dashboard() {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
-        status: 'pending', // Adding default status for TypeScript type safety
-        description: '',   // Adding default description 
-        deviceType: '',    // Adding default deviceType
-        deviceBrand: '',   // Adding default deviceBrand
-        location: '',      // Adding default location
-        createdAt: { seconds: 0, toDate: () => new Date() }, // Adding default createdAt
+        status: 'pending',
+        description: '',
+        deviceType: '',
+        deviceBrand: '',
+        location: '',
+        createdAt: { seconds: 0, toDate: () => new Date() },
         ...doc.data(),
       }));
     },
     enabled: !!userProfile && userProfile.role === 'customer',
   });
   
-  // Fetch technician service requests
   const { data: technicianRequests, isLoading: isLoadingTechRequests } = useQuery({
     queryKey: ['technicianRequests', userProfile?.uid],
     queryFn: async () => {
       if (!userProfile?.uid || userProfile.role !== 'technician') return [];
       
-      // In a real app, we would fetch requests near the technician's location
-      // For demo purposes, we'll get all pending requests
       const requestsRef = collection(db, 'requests');
       const q = query(
         requestsRef,
@@ -81,33 +76,29 @@ export default function Dashboard() {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
-        status: 'pending', // Adding default status for TypeScript type safety
-        description: '',   // Adding default description 
-        deviceType: '',    // Adding default deviceType
-        deviceBrand: '',   // Adding default deviceBrand
-        location: '',      // Adding default location
-        userName: '',      // Adding default userName
-        createdAt: { seconds: 0, toDate: () => new Date() }, // Adding default createdAt
+        status: 'pending',
+        description: '',
+        deviceType: '',
+        deviceBrand: '',
+        location: '',
+        userName: '',
+        createdAt: { seconds: 0, toDate: () => new Date() },
         ...doc.data(),
       }));
     },
     enabled: !!userProfile && userProfile.role === 'technician',
   });
   
-  // Fetch recent messages
   const { data: recentMessages, isLoading: isLoadingMessages } = useQuery({
     queryKey: ['recentMessages', userProfile?.uid],
     queryFn: async () => {
       if (!userProfile?.uid) return [];
       
-      // In a real app, we would fetch this from Firestore
-      // For demo purposes, we'll return an empty array
       return [];
     },
     enabled: !!userProfile,
   });
   
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -163,16 +154,13 @@ export default function Dashboard() {
             <TabsTrigger value="messages">Messages</TabsTrigger>
           </TabsList>
           
-          {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4">
             <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
-              {/* Stats Section */}
               <motion.div variants={itemVariants} className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-                {/* Active Requests */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
@@ -198,7 +186,6 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
                 
-                {/* Completed Requests */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
@@ -220,7 +207,6 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
                 
-                {/* Messages */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
@@ -242,7 +228,6 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
                 
-                {/* Profile */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
@@ -263,12 +248,10 @@ export default function Dashboard() {
                 </Card>
               </motion.div>
               
-              {/* Recent Activity */}
               <motion.div variants={itemVariants}>
                 <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
                 
                 {userProfile?.role === 'customer' ? (
-                  // Customer recent requests
                   <div className="space-y-4">
                     {isLoadingRequests ? (
                       <div className="flex items-center justify-center p-8">
@@ -339,7 +322,6 @@ export default function Dashboard() {
                     )}
                   </div>
                 ) : (
-                  // Technician recent requests
                   <div className="space-y-4">
                     {isLoadingTechRequests ? (
                       <div className="flex items-center justify-center p-8">
@@ -391,7 +373,7 @@ export default function Dashboard() {
                             onClick={() => setActiveTab('available-requests')}
                             className="w-full sm:w-auto"
                           >
-                            <Tool className="mr-2 h-4 w-4" />
+                            <Wrench className="mr-2 h-4 w-4" />
                             View Available Requests
                           </Button>
                         </CardFooter>
@@ -411,7 +393,6 @@ export default function Dashboard() {
             </motion.div>
           </TabsContent>
           
-          {/* New Request Tab - Customers Only */}
           {userProfile?.role === 'customer' && (
             <TabsContent value="new-request">
               <motion.div
@@ -424,7 +405,6 @@ export default function Dashboard() {
             </TabsContent>
           )}
           
-          {/* Available Requests Tab - Technicians Only */}
           {userProfile?.role === 'technician' && (
             <TabsContent value="available-requests">
               <motion.div
@@ -487,7 +467,7 @@ export default function Dashboard() {
                       ) : (
                         <div className="text-center py-8">
                           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">
-                            <Tool className="h-6 w-6 text-muted-foreground" />
+                            <Wrench className="h-6 w-6 text-muted-foreground" />
                           </div>
                           <h3 className="text-lg font-medium mb-1">No available requests</h3>
                           <p className="text-muted-foreground">
@@ -503,7 +483,6 @@ export default function Dashboard() {
             </TabsContent>
           )}
           
-          {/* Messages Tab */}
           <TabsContent value="messages">
             <motion.div
               initial={{ opacity: 0, y: 20 }}

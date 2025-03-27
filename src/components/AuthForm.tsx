@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -9,7 +10,7 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mail } from 'lucide-react'; // Removed Google icon
+import { Mail } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,8 +22,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 export function AuthForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { login, loginWithGoogle, signUp } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -32,20 +34,22 @@ export function AuthForm() {
     return searchParams.get('mode') === 'register' ? 'register' : 'login';
   });
   
+  const [selectedRole, setSelectedRole] = useState<'customer' | 'technician'>('customer');
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
       if (authMode === 'login') {
-        await signIn(email, password);
+        await login(email, password);
         toast({
           title: "Login successful!",
           description: "You are now logged in.",
         });
         navigate('/dashboard');
       } else {
-        await signUp(email, password);
+        await signUp(email, password, selectedRole, displayName || email.split('@')[0]);
         toast({
           title: "Registration successful!",
           description: "You are now registered.",
@@ -67,7 +71,7 @@ export function AuthForm() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      await signInWithGoogle();
+      await loginWithGoogle();
       toast({
         title: "Login successful!",
         description: "You are now logged in with Google.",
@@ -127,6 +131,39 @@ export function AuthForm() {
           />
         </div>
         
+        {authMode === 'register' && (
+          <>
+            <div className="grid gap-2">
+              <Label htmlFor="displayName">Display Name (optional)</Label>
+              <Input 
+                id="displayName" 
+                type="text" 
+                placeholder="How you want to be called" 
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label>Account Type</Label>
+              <RadioGroup 
+                value={selectedRole} 
+                onValueChange={(value: 'customer' | 'technician') => setSelectedRole(value)}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="customer" id="customer" />
+                  <Label htmlFor="customer">Customer</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="technician" id="technician" />
+                  <Label htmlFor="technician">Technician</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </>
+        )}
+        
         <Button onClick={handleSubmit} disabled={loading}>
           {loading 
             ? <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
@@ -148,7 +185,7 @@ export function AuthForm() {
           </div>
         </div>
         <Button variant="outline" onClick={handleGoogleSignIn} disabled={loading}>
-          <Mail className="mr-2 h-4 w-4" /> {/* Using Mail icon as a replacement */}
+          <Mail className="mr-2 h-4 w-4" />
           Google
         </Button>
       </CardFooter>
