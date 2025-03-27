@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Layout } from '@/components/Layout';
 import { Hero } from '@/components/Hero';
 import { useAuth } from '@/contexts/AuthContext';
-import { Laptop, Smartphone, Clock, Shield, CheckCircle, Tool } from 'lucide-react';
+import { Laptop, Smartphone, Clock, Shield, CheckCircle, Wrench } from 'lucide-react';
 
 const features = [
   {
@@ -29,7 +29,7 @@ const features = [
     description: 'All technicians on our platform are verified with ratings and reviews.'
   },
   {
-    icon: Tool,
+    icon: Wrench,
     title: 'Quality Service',
     description: 'Get professional diagnostics and repairs from certified technicians.'
   },

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -57,6 +56,12 @@ export default function Requests() {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
+        status: 'pending',
+        description: '',
+        deviceType: '',
+        deviceBrand: '',
+        location: '',
+        createdAt: { seconds: 0, toDate: () => new Date() },
         ...doc.data(),
       }));
     },
@@ -74,13 +79,20 @@ export default function Requests() {
       const requestsRef = collection(db, 'requests');
       const q = query(
         requestsRef,
-        where('status', '==', 'pending'), // For technicians, we only show pending requests
+        where('status', '==', 'pending'),
         orderBy('createdAt', 'desc')
       );
       
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
+        status: 'pending',
+        description: '',
+        deviceType: '',
+        deviceBrand: '',
+        location: '',
+        userName: '',
+        createdAt: { seconds: 0, toDate: () => new Date() },
         ...doc.data(),
       }));
     },

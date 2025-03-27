@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { Laptop, Smartphone, Tablet, Settings, Tool, Server, ChevronRight } from 'lucide-react';
+import { Laptop, Smartphone, Tablet, Settings, Server, ChevronRight, Wrench } from 'lucide-react';
 
 const devices = [
   { name: 'Laptop', icon: Laptop, delay: 0.2 },
@@ -39,7 +38,6 @@ const itemVariants = {
 export function Hero() {
   const [currentIndex, setCurrentIndex] = useState(0);
   
-  // Automatic cycling through highlight words
   useEffect(() => {
     const intervalId = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % highlightWords.length);
@@ -52,7 +50,6 @@ export function Hero() {
   
   return (
     <div className="relative overflow-hidden min-h-[calc(100vh-80px)] flex items-center">
-      {/* Background Gradients */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-0 left-1/4 bg-primary/20 w-72 h-72 rounded-full blur-3xl opacity-50" />
         <div className="absolute bottom-1/4 right-1/3 bg-blue-400/20 w-60 h-60 rounded-full blur-3xl opacity-40" />
@@ -135,7 +132,7 @@ export function Hero() {
           >
             <div className="relative bg-gradient-to-tr from-card to-secondary rounded-2xl border shadow-xl p-6 z-10">
               <div className="absolute -right-3 -top-3 bg-primary rounded-full p-3 shadow-lg">
-                <Tool className="h-6 w-6 text-white" />
+                <Wrench className="h-6 w-6 text-white" />
               </div>
               
               <h3 className="text-lg font-semibold mb-4">Service Request</h3>

@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/card';
 import { 
   PlusCircle, 
-  Tool, 
+  Wrench, 
   Clock, 
   CheckCircle, 
   XCircle, 
@@ -50,6 +50,12 @@ export default function Dashboard() {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
+        status: 'pending', // Adding default status for TypeScript type safety
+        description: '',   // Adding default description 
+        deviceType: '',    // Adding default deviceType
+        deviceBrand: '',   // Adding default deviceBrand
+        location: '',      // Adding default location
+        createdAt: { seconds: 0, toDate: () => new Date() }, // Adding default createdAt
         ...doc.data(),
       }));
     },
@@ -75,6 +81,13 @@ export default function Dashboard() {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
+        status: 'pending', // Adding default status for TypeScript type safety
+        description: '',   // Adding default description 
+        deviceType: '',    // Adding default deviceType
+        deviceBrand: '',   // Adding default deviceBrand
+        location: '',      // Adding default location
+        userName: '',      // Adding default userName
+        createdAt: { seconds: 0, toDate: () => new Date() }, // Adding default createdAt
         ...doc.data(),
       }));
     },
