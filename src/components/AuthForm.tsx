@@ -41,6 +41,8 @@ export function AuthForm() {
     setLoading(true);
     
     try {
+      console.log("Firebase auth attempt with mode:", authMode);
+      
       if (authMode === 'login') {
         await login(email, password);
         toast({
@@ -49,6 +51,7 @@ export function AuthForm() {
         });
         navigate('/dashboard');
       } else {
+        // Make sure we're passing all required parameters
         await signUp(email, password, selectedRole, displayName || email.split('@')[0]);
         toast({
           title: "Registration successful!",
@@ -57,10 +60,10 @@ export function AuthForm() {
         navigate('/dashboard');
       }
     } catch (error: any) {
-      console.error("Authentication error:", error.message);
+      console.error("Authentication error:", error);
       toast({
         title: "Authentication failed.",
-        description: error.message,
+        description: error.message || "An unknown error occurred",
         variant: "destructive",
       });
     } finally {
@@ -78,10 +81,10 @@ export function AuthForm() {
       });
       navigate('/dashboard');
     } catch (error: any) {
-      console.error("Google Sign-In error:", error.message);
+      console.error("Google Sign-In error:", error);
       toast({
         title: "Google Sign-In failed.",
-        description: error.message,
+        description: error.message || "An unknown error occurred",
         variant: "destructive",
       });
     } finally {

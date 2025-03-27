@@ -65,6 +65,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Add debugging to trace Firebase initialization
+  useEffect(() => {
+    console.log("AuthProvider initialized");
+  }, []);
+
   async function fetchUserProfile(user: User) {
     try {
       const userDocRef = doc(db, 'users', user.uid);
@@ -82,7 +87,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   useEffect(() => {
+    console.log("Setting up auth state listener");
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log("Auth state changed:", user ? "User logged in" : "No user");
       setCurrentUser(user);
       
       if (user) {
@@ -99,7 +106,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   async function signUp(email: string, password: string, role: UserRole, displayName: string) {
     try {
+      console.log("Attempting to create user:", email);
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("User created successfully:", user.uid);
       
       // Create user profile
       const userProfile: UserProfile = {
@@ -116,6 +125,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       toast.success('Account created successfully');
       return userProfile;
     } catch (error: any) {
+      console.error("Sign up error:", error);
       toast.error(`Failed to create account: ${error.message}`);
       throw error;
     }
