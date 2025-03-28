@@ -77,8 +77,13 @@ export function RequestForm() {
       setIsSuccess(true);
       toast.success('Service request submitted successfully');
       
-      // Invalidate and refetch the customerRequests query to update the counter
+      // Immediately invalidate and refetch the customerRequests query to update the counter properly
       queryClient.invalidateQueries({ queryKey: ['customerRequests', userProfile.uid] });
+      
+      // Force a refetch of the dashboard data after a short delay to ensure the counter updates
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['customerRequests', userProfile.uid] });
+      }, 500);
       
       // Reset the form after 1.5 seconds
       setTimeout(() => {

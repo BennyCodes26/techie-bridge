@@ -10,7 +10,10 @@ import {
   serverTimestamp,
   DocumentData,
   QueryDocumentSnapshot,
-  Timestamp
+  Timestamp,
+  getDoc,
+  doc,
+  updateDoc
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
@@ -79,23 +82,54 @@ export function ChatProvider({ children }: ChatProviderProps) {
       where('participants', 'array-contains', currentUser.uid)
     );
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
       const conversationsList: Conversation[] = [];
       
-      snapshot.forEach((doc) => {
-        const data = doc.data();
+      for (const docChange of snapshot.docChanges()) {
+        const conversationDoc = docChange.doc;
+        const data = conversationDoc.data();
         const otherUserId = data.participants.find((id: string) => id !== currentUser.uid);
         
+        // Check if participants_info exists and has the other user's info
+        let otherUserName = data.participants_info?.[otherUserId]?.displayName || 'Unknown';
+        let otherUserPhotoURL = data.participants_info?.[otherUserId]?.photoURL || null;
+        
+        // If participant info is missing or incomplete, fetch it from the users collection
+        if (otherUserName === 'Unknown' || !otherUserPhotoURL) {
+          try {
+            const userDocRef = doc(db, 'users', otherUserId);
+            const userDoc = await getDoc(userDocRef);
+            
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              otherUserName = userData.displayName || otherUserName;
+              otherUserPhotoURL = userData.photoURL || otherUserPhotoURL;
+              
+              // Update the conversation with the correct user info
+              const participants_info = data.participants_info || {};
+              participants_info[otherUserId] = {
+                displayName: otherUserName,
+                photoURL: otherUserPhotoURL
+              };
+              
+              // Update the conversation document with the correct info
+              await updateDoc(conversationDoc.ref, { participants_info });
+            }
+          } catch (error) {
+            console.error("Error fetching user data:", error);
+          }
+        }
+        
         conversationsList.push({
-          id: doc.id,
+          id: conversationDoc.id,
           participants: data.participants,
           lastMessage: data.lastMessage,
           lastMessageTimestamp: data.lastMessageTimestamp,
-          otherUserName: data.participants_info?.[otherUserId]?.displayName || 'Unknown',
-          otherUserPhotoURL: data.participants_info?.[otherUserId]?.photoURL || null,
+          otherUserName: otherUserName,
+          otherUserPhotoURL: otherUserPhotoURL,
           otherUserId
         });
-      });
+      }
       
       // Sort by most recent message
       conversationsList.sort((a, b) => {
@@ -178,13 +212,28 @@ export function ChatProvider({ children }: ChatProviderProps) {
             photoURL: userProfile?.photoURL || currentUser.photoURL
           };
           
-          // Add receiver info (would be populated from a query in a real app)
-          // For now, we'll leave it empty and it would be updated when fetched
+          // Try to get receiver info
+          try {
+            const receiverDocRef = doc(db, 'users', receiverId);
+            const receiverDoc = await getDoc(receiverDocRef);
+            
+            if (receiverDoc.exists()) {
+              const receiverData = receiverDoc.data();
+              participants_info[receiverId] = {
+                displayName: receiverData.displayName || 'Unknown',
+                photoURL: receiverData.photoURL || null
+              };
+            }
+          } catch (error) {
+            console.error("Error fetching receiver data:", error);
+          }
           
           const newConversationRef = await addDoc(conversationsRef, {
             participants: [currentUser.uid, receiverId],
             participants_info,
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
+            lastMessage: text,
+            lastMessageTimestamp: serverTimestamp()
           });
           
           conversationId = newConversationRef.id;
@@ -193,7 +242,10 @@ export function ChatProvider({ children }: ChatProviderProps) {
           const newConvo: Conversation = {
             id: conversationId,
             participants: [currentUser.uid, receiverId],
-            otherUserId: receiverId
+            otherUserId: receiverId,
+            lastMessage: text,
+            otherUserName: participants_info[receiverId]?.displayName || 'Unknown',
+            otherUserPhotoURL: participants_info[receiverId]?.photoURL || null
           };
           
           setCurrentConversation(newConvo);
@@ -211,7 +263,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
       });
       
       // Update last message in conversation
-      // This would be handled by a Firestore trigger in a real app
+      const conversationRef = doc(db, 'conversations', conversationId);
+      await updateDoc(conversationRef, {
+        lastMessage: text,
+        lastMessageTimestamp: serverTimestamp()
+      });
       
       toast.success('Message sent');
     } catch (error: any) {
