@@ -10,6 +10,7 @@ import { collection, addDoc, serverTimestamp, GeoPoint } from 'firebase/firestor
 import { db } from '@/lib/firebase';
 import { toast } from "sonner";
 import { LocationButton } from '@/components/LocationButton';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -54,6 +55,7 @@ export function RequestForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [coordinates, setCoordinates] = useState<{latitude: number, longitude: number} | null>(null);
+  const queryClient = useQueryClient();
   
   // Form setup
   const form = useForm<FormValues>({
@@ -97,6 +99,9 @@ export function RequestForm() {
       
       setIsSuccess(true);
       toast.success('Service request submitted successfully');
+      
+      // Invalidate and refetch the customerRequests query to update the counter
+      queryClient.invalidateQueries({ queryKey: ['customerRequests', userProfile.uid] });
       
       // Reset the form after 1.5 seconds
       setTimeout(() => {
