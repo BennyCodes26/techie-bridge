@@ -20,6 +20,7 @@ export interface UserProfile {
   specializations?: string[];
   rating?: number;
   reviews?: number;
+  bio?: string;
 }
 
 export interface AuthContextType {
