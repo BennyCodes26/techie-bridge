@@ -22,9 +22,10 @@ interface TechnicianCardProps {
   technician: UserProfile & {
     distance?: string; // Distance from user, e.g. "0.5 miles"
   };
+  onSelect?: () => void;
 }
 
-export function TechnicianCard({ technician }: TechnicianCardProps) {
+export function TechnicianCard({ technician, onSelect }: TechnicianCardProps) {
   const navigate = useNavigate();
   const { sendMessage } = useChat();
   const [isLoading, setIsLoading] = useState(false);
@@ -43,6 +44,13 @@ export function TechnicianCard({ technician }: TechnicianCardProps) {
     }
   };
 
+  // Handle card click - select this technician
+  const handleCardClick = () => {
+    if (onSelect) {
+      onSelect();
+    }
+  };
+
   // Calculate display name or fallback
   const displayName = technician.displayName || 'Technician';
   const initials = displayName
@@ -56,6 +64,8 @@ export function TechnicianCard({ technician }: TechnicianCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
+      onClick={handleCardClick}
+      className="cursor-pointer"
     >
       <Card className="overflow-hidden hover:shadow-md transition-shadow">
         <CardHeader className="p-4">
@@ -116,7 +126,10 @@ export function TechnicianCard({ technician }: TechnicianCardProps) {
             variant="outline" 
             size="sm"
             className="w-full mr-2"
-            onClick={() => navigate(`/technician/${technician.uid}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/technician/${technician.uid}`);
+            }}
           >
             View Profile
           </Button>
@@ -124,7 +137,10 @@ export function TechnicianCard({ technician }: TechnicianCardProps) {
           <Button 
             size="sm" 
             className="w-full"
-            onClick={handleContactClick}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleContactClick();
+            }}
             disabled={isLoading}
           >
             <MessageSquare className="h-4 w-4 mr-1" />

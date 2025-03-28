@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase';
 import { useAuth, UserProfile } from '@/contexts/AuthContext';
 import { ProtectedLayout } from '@/components/Layout';
 import { TechnicianCard, TechnicianCardSkeleton } from '@/components/TechnicianCard';
-import { MapView } from '@/components/MapView';
+import { MapView, MapMarker } from '@/components/MapView';
 import { LocationButton } from '@/components/LocationButton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Loader2, SearchIcon, MapPin } from 'lucide-react';
+import { Loader2, SearchIcon, MapPin, UserCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Discover() {
   const { userProfile } = useAuth();
@@ -27,6 +28,8 @@ export default function Discover() {
   const [location, setLocation] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
   const [userCoordinates, setUserCoordinates] = useState<{latitude: number, longitude: number} | null>(null);
+  const [selectedTechnician, setSelectedTechnician] = useState<string | null>(null);
+  const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
   
   // Fetch technicians
   const { data: technicians, isLoading, refetch } = useQuery({
@@ -36,22 +39,111 @@ export default function Discover() {
       const q = query(techRef, where('role', '==', 'technician'));
       const querySnapshot = await getDocs(q);
       
-      // Transform data and add mock distance
+      // Transform data and add mock distance and coordinates
       return querySnapshot.docs.map(doc => {
         const data = doc.data() as UserProfile;
+        
+        // Generate mock coordinates close to user's location or NYC if not available
+        const baseLat = userCoordinates?.latitude || 40.7484;
+        const baseLng = userCoordinates?.longitude || -73.9857;
+        
+        // Add random offset (within ~2 miles)
+        const latOffset = (Math.random() - 0.5) * 0.04;
+        const lngOffset = (Math.random() - 0.5) * 0.04;
+        
+        const techCoordinates = {
+          latitude: baseLat + latOffset,
+          longitude: baseLng + lngOffset
+        };
+        
+        // Calculate actual distance in miles
+        let distance = "Unknown distance";
+        if (userCoordinates) {
+          const d = calculateDistance(
+            userCoordinates.latitude, 
+            userCoordinates.longitude,
+            techCoordinates.latitude,
+            techCoordinates.longitude
+          );
+          distance = `${d.toFixed(1)} miles away`;
+        }
+        
         return {
           ...data,
-          distance: `${(Math.random() * 5).toFixed(1)} miles away` // Mock distance
+          distance,
+          coordinates: techCoordinates
         };
       });
     },
   });
+  
+  // Update map markers whenever technicians or user location changes
+  useEffect(() => {
+    const markers: MapMarker[] = [];
+    
+    // Add user marker if available
+    if (userCoordinates) {
+      markers.push({
+        id: 'user-location',
+        position: [userCoordinates.longitude, userCoordinates.latitude],
+        type: 'customer',
+        label: 'You'
+      });
+    }
+    
+    // Add technician markers
+    if (technicians) {
+      technicians.forEach(tech => {
+        if (tech.coordinates) {
+          markers.push({
+            id: tech.uid,
+            position: [tech.coordinates.longitude, tech.coordinates.latitude],
+            type: tech.uid === selectedTechnician ? 'selected' : 'technician',
+            label: tech.displayName || 'Technician'
+          });
+        }
+      });
+    }
+    
+    setMapMarkers(markers);
+  }, [technicians, userCoordinates, selectedTechnician]);
+  
+  // Calculate distance between two coordinates in miles
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 3958.8; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
   
   // Handle location detection
   const handleLocationDetected = (latitude: number, longitude: number, formattedAddress?: string) => {
     setUserCoordinates({ latitude, longitude });
     if (formattedAddress) {
       setLocation(formattedAddress);
+    }
+    
+    // Refetch technicians with the new location to update distances
+    refetch().then(() => {
+      toast.success("Location detected! Showing nearby technicians.");
+    });
+  };
+  
+  // Handle marker click on map
+  const handleMarkerClick = (id: string) => {
+    if (id === 'user-location') return;
+    
+    setSelectedTechnician(id);
+    
+    // Scroll to the technician card if available
+    const technicianCard = document.getElementById(`technician-${id}`);
+    if (technicianCard) {
+      technicianCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   };
   
@@ -185,10 +277,27 @@ export default function Discover() {
             >
               <div className="h-[300px]">
                 <MapView 
+                  markers={mapMarkers}
                   center={userCoordinates ? [userCoordinates.longitude, userCoordinates.latitude] : undefined}
-                  zoom={userCoordinates ? 14 : 12}
+                  zoom={userCoordinates ? 13 : 12}
+                  onMarkerClick={handleMarkerClick}
                 />
               </div>
+              {userCoordinates && (
+                <div className="p-2 text-xs text-center text-muted-foreground bg-muted/50">
+                  <div className="flex justify-center gap-3 mt-1">
+                    <span className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-[#0EA5E9]"></div> You
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-[#8B5CF6]"></div> Technicians
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-[#F97316]"></div> Selected
+                    </span>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
           
@@ -215,7 +324,16 @@ export default function Discover() {
               ) : filteredTechnicians && filteredTechnicians.length > 0 ? (
                 // Technician list
                 filteredTechnicians.map((technician) => (
-                  <TechnicianCard key={technician.uid} technician={technician} />
+                  <div 
+                    key={technician.uid} 
+                    id={`technician-${technician.uid}`}
+                    className={selectedTechnician === technician.uid ? 'ring-2 ring-primary rounded-lg' : ''}
+                  >
+                    <TechnicianCard 
+                      technician={technician} 
+                      onSelect={() => setSelectedTechnician(technician.uid)} 
+                    />
+                  </div>
                 ))
               ) : (
                 // No results
