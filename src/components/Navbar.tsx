@@ -12,8 +12,10 @@ import {
   MapPin
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useChat } from '@/contexts/ChatContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +27,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export function Navbar() {
   const { currentUser, userProfile, logout } = useAuth();
+  const { unreadCount } = useChat();
   const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -61,11 +64,11 @@ export function Navbar() {
     userProfile?.role === 'technician' ? [
       { to: '/dashboard', label: 'Dashboard', icon: User },
       { to: '/requests', label: 'Requests', icon: Search },
-      { to: '/chat', label: 'Messages', icon: MessageSquare },
+      { to: '/chat', label: 'Messages', icon: MessageSquare, badge: unreadCount },
     ] : [
       { to: '/dashboard', label: 'Dashboard', icon: User },
       { to: '/discover', label: 'Find Technicians', icon: MapPin },
-      { to: '/chat', label: 'Messages', icon: MessageSquare },
+      { to: '/chat', label: 'Messages', icon: MessageSquare, badge: unreadCount },
     ]
   ) : [];
 
@@ -113,7 +116,7 @@ export function Navbar() {
               <Link 
                 key={link.to} 
                 to={link.to}
-                className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all ${
+                className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all relative ${
                   isActive 
                     ? 'bg-primary/10 text-primary font-medium' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
@@ -121,6 +124,14 @@ export function Navbar() {
               >
                 <Icon size={18} />
                 <span>{link.label}</span>
+                {link.badge && link.badge > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="h-5 w-5 flex items-center justify-center p-0 text-xs absolute -top-1 -right-1"
+                  >
+                    {link.badge > 9 ? '9+' : link.badge}
+                  </Badge>
+                )}
                 {isActive && (
                   <motion.div
                     layoutId="navbar-indicator"
@@ -210,7 +221,7 @@ export function Navbar() {
                   <Link
                     key={link.to}
                     to={link.to}
-                    className={`p-3 rounded-lg flex items-center gap-3 ${
+                    className={`p-3 rounded-lg flex items-center gap-3 relative ${
                       isActive 
                         ? 'bg-primary/10 text-primary font-medium' 
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
@@ -219,6 +230,14 @@ export function Navbar() {
                   >
                     <Icon size={18} />
                     <span>{link.label}</span>
+                    {link.badge && link.badge > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="ml-auto h-5 min-w-5 flex items-center justify-center p-0 text-xs"
+                      >
+                        {link.badge > 9 ? '9+' : link.badge}
+                      </Badge>
+                    )}
                   </Link>
                 );
               })}

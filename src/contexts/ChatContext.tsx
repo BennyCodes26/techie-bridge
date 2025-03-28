@@ -13,7 +13,8 @@ import {
   Timestamp,
   getDoc,
   doc,
-  updateDoc
+  updateDoc,
+  getDocs
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
@@ -33,8 +34,10 @@ interface ChatContextType {
   currentConversation: Conversation | null;
   messages: Message[];
   isLoading: boolean;
+  unreadCount: number;
   sendMessage: (receiverId: string, text: string) => Promise<void>;
   selectConversation: (conversation: Conversation) => void;
+  markConversationAsRead: (conversationId: string) => Promise<void>;
 }
 
 export interface Conversation {
@@ -45,6 +48,7 @@ export interface Conversation {
   otherUserName?: string;
   otherUserPhotoURL?: string;
   otherUserId: string;
+  unreadCount?: number;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -67,6 +71,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
   
   // Fetch user conversations
   useEffect(() => {
@@ -84,6 +89,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const conversationsList: Conversation[] = [];
+      let totalUnread = 0;
       
       for (const docChange of snapshot.docChanges()) {
         const conversationDoc = docChange.doc;
@@ -120,6 +126,24 @@ export function ChatProvider({ children }: ChatProviderProps) {
           }
         }
         
+        // Count unread messages for this conversation
+        let conversationUnreadCount = 0;
+        const messagesRef = collection(db, 'messages');
+        const unreadQuery = query(
+          messagesRef,
+          where('conversationId', '==', conversationDoc.id),
+          where('receiverId', '==', currentUser.uid),
+          where('read', '==', false)
+        );
+        
+        try {
+          const unreadSnapshot = await getDocs(unreadQuery);
+          conversationUnreadCount = unreadSnapshot.size;
+          totalUnread += conversationUnreadCount;
+        } catch (error) {
+          console.error("Error counting unread messages:", error);
+        }
+        
         conversationsList.push({
           id: conversationDoc.id,
           participants: data.participants,
@@ -127,7 +151,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
           lastMessageTimestamp: data.lastMessageTimestamp,
           otherUserName: otherUserName,
           otherUserPhotoURL: otherUserPhotoURL,
-          otherUserId
+          otherUserId,
+          unreadCount: conversationUnreadCount
         });
       }
       
@@ -139,6 +164,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
       });
       
       setConversations(conversationsList);
+      setUnreadCount(totalUnread);
       setIsLoading(false);
     });
     
@@ -147,7 +173,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
   
   // Fetch messages for the current conversation
   useEffect(() => {
-    if (!currentConversation) {
+    if (!currentConversation || !currentUser) {
       setMessages([]);
       return;
     }
@@ -175,10 +201,54 @@ export function ChatProvider({ children }: ChatProviderProps) {
       });
       
       setMessages(messagesList);
+      
+      // Mark received messages as read when viewing the conversation
+      markConversationAsRead(currentConversation.id);
     });
     
     return () => unsubscribe();
-  }, [currentConversation]);
+  }, [currentConversation, currentUser]);
+  
+  // Mark conversation messages as read
+  async function markConversationAsRead(conversationId: string) {
+    if (!currentUser) return;
+    
+    try {
+      const messagesRef = collection(db, 'messages');
+      const unreadQuery = query(
+        messagesRef,
+        where('conversationId', '==', conversationId),
+        where('receiverId', '==', currentUser.uid),
+        where('read', '==', false)
+      );
+      
+      const unreadSnapshot = await getDocs(unreadQuery);
+      
+      const batch = [];
+      unreadSnapshot.forEach((doc) => {
+        const messageRef = doc.ref;
+        batch.push(updateDoc(messageRef, { read: true }));
+      });
+      
+      await Promise.all(batch);
+      
+      // Update local conversations state to reflect messages being read
+      setConversations(prevConversations => {
+        return prevConversations.map(conv => {
+          if (conv.id === conversationId) {
+            return { ...conv, unreadCount: 0 };
+          }
+          return conv;
+        });
+      });
+      
+      // Recalculate total unread count
+      setUnreadCount(prev => Math.max(0, prev - (unreadSnapshot.size || 0)));
+      
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+    }
+  }
   
   async function sendMessage(receiverId: string, text: string) {
     if (!currentUser) {
@@ -277,6 +347,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
   
   function selectConversation(conversation: Conversation) {
     setCurrentConversation(conversation);
+    if (conversation.id) {
+      markConversationAsRead(conversation.id);
+    }
   }
   
   const value = {
@@ -284,8 +357,10 @@ export function ChatProvider({ children }: ChatProviderProps) {
     currentConversation,
     messages,
     isLoading,
+    unreadCount,
     sendMessage,
-    selectConversation
+    selectConversation,
+    markConversationAsRead
   };
   
   return (

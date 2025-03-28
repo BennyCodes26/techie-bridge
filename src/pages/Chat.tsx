@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { 
   Search, 
   MessageSquare, 
@@ -163,19 +164,30 @@ function ConversationItem({ conversation, isActive, onClick }: ConversationItemP
       onClick={onClick}
     >
       <div className="flex items-center gap-3">
-        <Avatar>
-          <AvatarImage 
-            src={conversation.otherUserPhotoURL || undefined} 
-            alt={conversation.otherUserName || 'User'} 
-          />
-          <AvatarFallback className="bg-primary/10 text-primary">
-            {(conversation.otherUserName || 'U').charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        <div className="relative">
+          <Avatar>
+            <AvatarImage 
+              src={conversation.otherUserPhotoURL || undefined} 
+              alt={conversation.otherUserName || 'User'} 
+            />
+            <AvatarFallback className="bg-primary/10 text-primary">
+              {(conversation.otherUserName || 'U').charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          
+          {conversation.unreadCount && conversation.unreadCount > 0 && (
+            <Badge 
+              variant="destructive" 
+              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+            >
+              {conversation.unreadCount > 9 ? '9+' : conversation.unreadCount}
+            </Badge>
+          )}
+        </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center">
-            <h3 className="font-medium truncate">
+            <h3 className={`truncate ${conversation.unreadCount && conversation.unreadCount > 0 ? 'font-bold' : 'font-medium'}`}>
               {conversation.otherUserName || 'User'}
             </h3>
             {formattedTime && (
@@ -186,7 +198,11 @@ function ConversationItem({ conversation, isActive, onClick }: ConversationItemP
             )}
           </div>
           
-          <p className="text-sm text-muted-foreground truncate">
+          <p className={`text-sm truncate ${
+            conversation.unreadCount && conversation.unreadCount > 0 
+              ? 'text-foreground font-medium' 
+              : 'text-muted-foreground'
+          }`}>
             {conversation.lastMessage || 'No messages yet'}
           </p>
         </div>
